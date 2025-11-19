@@ -7,6 +7,7 @@ import {
 	AlignmentOverlay,
 	DEFAULT_ALIGNMENT_SETTINGS,
 } from "./src/easyAlign";
+import { detectDelimiter } from "./src/utils/detectDelimiter";
 import type { AlignmentSettingsData } from "./src/easyAlign/types";
 
 export default class EasyAlignPlugin extends Plugin {
@@ -55,8 +56,13 @@ export default class EasyAlignPlugin extends Plugin {
 			return;
 		}
 
-		const controller = new AlignmentCustomizationControllerImpl();
 		const lines = selection.split("\n");
+		const detectedDelimiter = detectDelimiter(lines);
+		const initialSettings = {
+			delimiter: detectedDelimiter ?? DEFAULT_ALIGNMENT_SETTINGS.delimiter,
+			justify: DEFAULT_ALIGNMENT_SETTINGS.justify,
+		};
+		const controller = new AlignmentCustomizationControllerImpl(initialSettings);
 
 		const selectionStart = editor.getCursor("from");
 		const selectionEnd = editor.getCursor("to");

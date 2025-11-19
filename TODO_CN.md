@@ -14,6 +14,7 @@
 - [x] 使用 `posToOffset`/`offsetToPos` 固定起始 offset，避免每次 preview 都复制块，确保每次输入只在原区域内回写。
 - [x] 更新相关测试（`alignmentOverlay.test.ts`）以断言聚焦、Enter、Esc 路径。
 - [ ] 在 overlay 中记录最后一次预览状态，用于 `Enter` 确认前如果用户未做改动可以避免重写。
+- [x] 自动检测常见分隔符（`:`, `=`, `,`, `|`, `：`, `;`）并把结果作为 initial delimiter，保证打开 overlay 时已经有合理默认值。
 
 ### 1.2 键盘交互与命令反馈
 - [x] 聚焦 delimiter 输入框后，按 `Enter` 等价于点击 Apply，`Esc` 等价于 Cancel，并通过模拟键盘事件的 Jest 测试确保不会回归。

@@ -113,6 +113,7 @@ export class AlignmentOverlay {
 		cancelButton.addEventListener("click", handleCancel);
 
 		document.body.appendChild(this.container);
+		applyCurrentState();
 		delimiterInput.focus();
 	}
 

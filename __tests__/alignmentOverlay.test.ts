@@ -20,7 +20,7 @@ describe("AlignmentOverlay", () => {
 		expect(delimiterInput).toBeTruthy();
 		expect(document.activeElement).toBe(delimiterInput);
 
-		expect(previewSpy).toHaveBeenCalledTimes(0);
+		expect(previewSpy).toHaveBeenCalledTimes(1);
 
 		delimiterInput!.value = " | ";
 		delimiterInput!.dispatchEvent(new Event("input", { bubbles: true }));
@@ -29,7 +29,7 @@ describe("AlignmentOverlay", () => {
 		justifySelect!.value = "right";
 		justifySelect!.dispatchEvent(new Event("change", { bubbles: true }));
 
-		expect(previewSpy).toHaveBeenCalled();
+		expect(previewSpy).toHaveBeenCalledTimes(3);
 
 		delimiterInput!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
 
