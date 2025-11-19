@@ -1,8 +1,99 @@
-/*
+.easy-align-ghost-text {
+	color: var(--text-muted);
+	opacity: 0.6;
+	pointer-events: none;
+	font-style: italic;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.easy-align-preview {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	max-width: 360px;
+	font-size: 0.9em;
+}
 
-If your plugin does not need CSS, delete this file.
+.easy-align-preview__title {
+	font-weight: 600;
+}
 
-*/
+.easy-align-preview__description {
+	color: var(--text-muted);
+}
+
+.easy-align-preview__body {
+	margin: 0;
+	padding: 6px;
+	background-color: var(--background-primary-alt);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	white-space: pre-wrap;
+	font-family: var(--font-monospace);
+	font-size: 0.9em;
+}
+
+.align-overlay {
+	position: fixed;
+	top: 12px;
+	right: 12px;
+	background: var(--background-primary);
+	border: 1px solid var(--interactive-accent);
+	padding: 14px;
+	border-radius: 8px;
+	z-index: 999;
+	min-width: 260px;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.align-overlay-body {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.align-overlay-title {
+	margin: 0;
+	font-size: 1rem;
+	font-weight: 600;
+}
+
+.align-overlay label {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 0.85rem;
+	text-transform: capitalize;
+}
+
+.align-overlay input,
+.align-overlay select {
+	width: 100%;
+	padding: 6px 8px;
+	border-radius: 4px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+	color: var(--text-normal);
+	text-align: left;
+	font-size: 0.9rem;
+}
+
+.align-overlay-actions {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+	flex-wrap: wrap;
+}
+
+.align-overlay-actions button {
+	flex: 1;
+	min-width: 90px;
+	font-weight: 500;
+}
+
+.easy-align-file-button {
+	display: block;
+	width: 100%;
+	text-align: left;
+	padding: 6px 10px;
+	margin-bottom: 6px;
+}

@@ -1,134 +1,98 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { Editor, MarkdownView, Notice, Plugin } from "obsidian";
+import {
+	AlignmentEngineImpl,
+	AlignmentServiceImpl,
+	InMemoryAlignmentStore,
+	AlignmentCustomizationControllerImpl,
+	AlignmentOverlay,
+	DEFAULT_ALIGNMENT_SETTINGS,
+} from "./src/easyAlign";
+import type { AlignmentSettingsData } from "./src/easyAlign/types";
 
-// Remember to rename these classes and interfaces!
-
-interface MyPluginSettings {
-	mySetting: string;
-}
-
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
-
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class EasyAlignPlugin extends Plugin {
+	private readonly alignmentService = new AlignmentServiceImpl(new InMemoryAlignmentStore());
+	private readonly engine = new AlignmentEngineImpl();
 
 	async onload() {
-		await this.loadSettings();
+		await this.alignmentService.load();
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (_evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
-
-		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
+			id: "easy-align-selection",
+			name: "Align selection with defaults",
+			editorCallback: (editor: Editor) => this.alignWithOptions(editor, DEFAULT_ALIGNMENT_SETTINGS),
 		});
-		// This adds an editor command that can perform some operation on the current editor instance
+
 		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, _view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
+			id: "easy-align-interactive",
+			name: "Align selection interactively",
+			editorCallback: (editor: Editor) => this.promptInteractiveAlignment(editor),
 		});
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+		const totalRules = this.alignmentService.getAllRules().length;
+		console.log(`EasyAlignPlugin loaded with ${totalRules} rule(s)`);
 	}
 
 	onunload() {
-
+		console.log("EasyAlignPlugin unloaded");
 	}
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+	private alignWithOptions(editor: Editor, options: AlignmentSettingsData) {
+		const selection = editor.getSelection();
+		if (!selection) {
+			new Notice("Please select text to align.");
+			return;
+		}
+
+		const lines = selection.split("\n");
+		const aligned = this.engine.alignLines(lines, options.delimiter, options.justify);
+		editor.replaceSelection(aligned.join("\n"));
 	}
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-}
+	private promptInteractiveAlignment(editor: Editor) {
+		const selection = editor.getSelection();
+		if (!selection) {
+			new Notice("Please select text to align.");
+			return;
+		}
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
+		const controller = new AlignmentCustomizationControllerImpl();
+		const lines = selection.split("\n");
 
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
+		const selectionStart = editor.getCursor("from");
+		const selectionEnd = editor.getCursor("to");
+		const startOffset = editor.posToOffset(selectionStart);
+		let currentEndOffset = editor.posToOffset(selectionEnd);
+		const originalSelection = selection;
 
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
+		const applyPreviewToEditor = (options: AlignmentSettingsData) => {
+			const aligned = this.engine.alignLines(lines, options.delimiter, options.justify);
+			const fromPos = editor.offsetToPos(startOffset);
+			const toPos = editor.offsetToPos(currentEndOffset);
+			editor.replaceRange(aligned.join("\n"), fromPos, toPos);
+			currentEndOffset = startOffset + aligned.join("\n").length;
+			const updatedEndPos = editor.offsetToPos(currentEndOffset);
+			editor.setSelection(fromPos, updatedEndPos);
+		};
 
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+		const cancelPreview = () => {
+			const fromPos = editor.offsetToPos(startOffset);
+			const toPos = editor.offsetToPos(currentEndOffset);
+			editor.replaceRange(originalSelection, fromPos, toPos);
+			currentEndOffset = startOffset + originalSelection.length;
+			const restoredEndPos = editor.offsetToPos(currentEndOffset);
+			editor.setSelection(fromPos, restoredEndPos);
+		};
 
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
+		const overlay = new AlignmentOverlay(
+			lines,
+			controller,
+			applyPreviewToEditor,
+			() => {
+				new Notice("Interactive alignment applied.");
+			},
+			cancelPreview,
+		);
 
-	display(): void {
-		const {containerEl} = this;
-
-		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
+		overlay.open();
 	}
 }
