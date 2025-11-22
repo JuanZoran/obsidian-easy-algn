@@ -90,6 +90,12 @@
 	font-weight: 500;
 }
 
+.easy-align-live-preview {
+	font-family: var(--font-monospace);
+	white-space: pre;
+	letter-spacing: -0.02em;
+}
+
 .easy-align-file-button {
 	display: block;
 	width: 100%;

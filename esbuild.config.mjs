@@ -1,6 +1,8 @@
 import esbuild from "esbuild";
 import process from "process";
 import builtins from "builtin-modules";
+import { copyFileSync, mkdirSync } from "fs";
+import { existsSync } from "fs";
 
 const banner =
 `/*
@@ -10,6 +12,11 @@ if you want to view the source, please visit the github repository of this plugi
 `;
 
 const prod = (process.argv[2] === "production");
+
+// Ensure build directory exists
+if (!existsSync("build")) {
+	mkdirSync("build", { recursive: true });
+}
 
 const context = await esbuild.context({
 	banner: {
@@ -37,13 +44,30 @@ const context = await esbuild.context({
 	logLevel: "info",
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
-	outfile: "main.js",
+	outfile: "build/main.js",
 	minify: prod,
 });
 
+// Function to copy files to build directory
+function copyBuildFiles() {
+	try {
+		copyFileSync("manifest.json", "build/manifest.json");
+		copyFileSync("styles.css", "build/styles.css");
+		console.log("Copied manifest.json and styles.css to build/");
+	} catch (error) {
+		console.error("Error copying files:", error);
+	}
+}
+
 if (prod) {
 	await context.rebuild();
+	copyBuildFiles();
+	await context.dispose();
 	process.exit(0);
 } else {
+	// Copy files on initial build
+	await context.rebuild();
+	copyBuildFiles();
+	// Then start watching
 	await context.watch();
 }

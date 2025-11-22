@@ -31,6 +31,8 @@ export default class EasyAlignPlugin extends Plugin {
 
 		const totalRules = this.alignmentService.getAllRules().length;
 		console.log(`EasyAlignPlugin loaded with ${totalRules} rule(s)`);
+
+		this.registerLivePreviewRenderer();
 	}
 
 	onunload() {
@@ -100,5 +102,36 @@ export default class EasyAlignPlugin extends Plugin {
 		);
 
 		overlay.open();
+	}
+
+	private registerLivePreviewRenderer() {
+		this.registerMarkdownPostProcessor((element) => {
+			this.applyLivePreviewClass(element);
+		});
+	}
+
+	private applyLivePreviewClass(root: HTMLElement) {
+		const selector = "p, li, div, code, pre, span";
+		const nodes = Array.from(root.querySelectorAll<HTMLElement>(selector));
+
+		for (const node of nodes) {
+			const text = node.textContent ?? "";
+			const lines = text.split("\n").filter((line) => line.trim().length);
+			if (lines.length < 2) {
+				continue;
+			}
+
+			const delimiter = detectDelimiter(lines);
+			if (!delimiter) {
+				continue;
+			}
+
+			const matches = lines.filter((line) => line.includes(delimiter));
+			if (matches.length < 2) {
+				continue;
+			}
+
+			node.classList.add("easy-align-live-preview");
+		}
 	}
 }
