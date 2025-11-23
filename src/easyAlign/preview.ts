@@ -1,6 +1,10 @@
 import { AlignmentEngineImpl } from "./engine";
-import type { AlignmentSettingsData, JustifyModeOrArray } from "./types";
+import type { JustifyModeOrArray } from "./types";
 
+/**
+ * @internal
+ * Preview alignment function used for testing purposes only.
+ */
 export function previewAlignment(
 	lines: string[],
 	delimiter: string,

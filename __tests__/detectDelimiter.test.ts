@@ -1,4 +1,4 @@
-import { detectDelimiter, COMMON_ALIGNMENT_DELIMITERS } from "../src/utils/detectDelimiter";
+import { detectDelimiter } from "../src/utils/detectDelimiter";
 
 describe("detectDelimiter", () => {
 	it("prioritizes delimiters present across multiple rows", () => {

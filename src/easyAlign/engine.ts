@@ -1,5 +1,5 @@
 import type { AlignmentEngine, AlignmentOptions, JustifyMode, JustifyModeOrArray } from './types';
-import { displayWidth } from '../utils/displayWidth';
+import { displayWidth, isFullwidthCodePoint } from '../utils/displayWidth';
 
 export class AlignmentEngineImpl implements AlignmentEngine {
 	alignLines(
@@ -12,47 +12,65 @@ export class AlignmentEngineImpl implements AlignmentEngine {
 			return [...lines];
 		}
 
+		// Cache equal sign handling check to avoid repeated calls
+		const isEqualSign = this.shouldApplyEqualSignHandling(delimiter);
+		
 		// Apply special handling for equal sign
-		const processedLines = this.shouldApplyEqualSignHandling(delimiter)
+		const processedLines = isEqualSign
 			? this.preprocessEqualSignLines(lines)
 			: lines;
 
 		// For equal sign special handling, use " = " as glue (already normalized in preprocessing)
-		const glue = this.shouldApplyEqualSignHandling(delimiter) 
+		const glue = isEqualSign
 			? ' = ' 
 			: this.getDelimiterGlue(delimiter);
-		const rows = this.splitLines(processedLines, delimiter);
+		const rows = this.splitLines(processedLines, delimiter, isEqualSign);
+		
+		// Pre-trim all cells once to avoid repeated trim() calls
+		const trimmedRows = rows.map(row => row.map(cell => cell.trim()));
+		
 		const filter = options?.filter;
-		const columnWidths = this.computeColumnWidths(rows, filter);
-		const columnHasFullwidth = this.computeColumnHasFullwidth(rows);
+		// Cache filter results to avoid duplicate calls
+		const filterCache = new Map<string, boolean>();
+		const getFilterResult = (rowIndex: number, colIndex: number, trimmed: string, rowLength: number): boolean => {
+			if (!filter) return true;
+			const key = `${rowIndex},${colIndex}`;
+			if (filterCache.has(key)) {
+				return filterCache.get(key)!;
+			}
+			const result = filter({
+				row: rowIndex,
+				ROW: trimmedRows.length,
+				col: colIndex,
+				COL: rowLength,
+				s: trimmed,
+				n: Math.ceil((colIndex + 1) / 2),
+				N: Math.ceil(rowLength / 2),
+			});
+			filterCache.set(key, result);
+			return result;
+		};
+		
+		const { columnWidths, columnHasFullwidth } = this.computeColumnMetrics(trimmedRows, getFilterResult);
 		const justifyModes = this.normalizeJustifyModes(justify);
 
-		return rows.map((row, rowIndex) => {
+		return trimmedRows.map((row, rowIndex) => {
 			const cells = row.map((cell, colIndex) => {
-				const trimmed = cell.trim();
-				const shouldAlign = filter
-					? filter({
-							row: rowIndex,
-							ROW: rows.length,
-							col: colIndex,
-							COL: row.length,
-							s: trimmed,
-							n: Math.ceil((colIndex + 1) / 2),
-							N: Math.ceil(row.length / 2),
-						})
-					: true;
+				const shouldAlign = getFilterResult(rowIndex, colIndex, cell, row.length);
 
 				if (!shouldAlign) {
-					return trimmed;
+					return cell;
 				}
 
-				const targetWidth = columnWidths[colIndex] ?? displayWidth(trimmed);
+				const targetWidth = columnWidths[colIndex] ?? displayWidth(cell);
 				const useFullwidth = columnHasFullwidth[colIndex] ?? false;
 				const columnJustify = this.getColumnJustifyMode(justifyModes, colIndex);
-				return this.padCell(trimmed, targetWidth, columnJustify, useFullwidth);
+				const padded = this.padCell(cell, targetWidth, columnJustify, useFullwidth);
+				return padded;
 			});
 
-			return cells.join(glue).replace(/\s+$/, '');
+			const joined = cells.join(glue).replace(/\s+$/, '');
+			return joined;
 		});
 	}
 
@@ -61,52 +79,39 @@ export class AlignmentEngineImpl implements AlignmentEngine {
 	}
 
 	private preprocessEqualSignLines(lines: string[]): string[] {
-		// Trim whitespace around equal signs and normalize
+		// Normalize whitespace around equal sign patterns (=, <=, >=, ==, etc.)
+		// Replace whitespace around equal sign patterns with single space, then collapse multiple spaces
+		const equalPattern = /\s*([<>!+\-*/%&|^]?=+[<>~]?)\s*/g;
 		return lines.map((line) => {
-			// Match patterns like: =, <=, >=, ==, ===, !=, +=, -=, etc.
-			// Replace whitespace around equal sign patterns with single space
-			// Use a more careful approach to avoid double replacement
-			let processed = line;
-			// First pass: normalize spaces around each equal sign pattern
-			processed = processed.replace(/\s*([<>!+\-*/%&|^]?=+[<>~]?)\s*/g, ' $1 ');
-			// Second pass: collapse all multiple spaces to single space
-			processed = processed.replace(/\s{2,}/g, ' ');
-			return processed.trim();
+			return line.replace(equalPattern, ' $1 ').replace(/\s{2,}/g, ' ').trim();
 		});
 	}
 
-	private splitLines(lines: string[], delimiter: string): string[][] {
-		if (this.shouldApplyEqualSignHandling(delimiter)) {
+	private splitLines(lines: string[], delimiter: string, isEqualSign?: boolean): string[][] {
+		const shouldHandleEqual = isEqualSign ?? this.shouldApplyEqualSignHandling(delimiter);
+		if (shouldHandleEqual) {
 			// For equal sign, split by pattern that matches =, <=, >=, ==, ===, etc.
-			// The equal sign itself should be the delimiter, not part of the content
 			const equalPattern = /([<>!+\-*/%&|^]?=+[<>~]?)/g;
 			return lines.map((line) => {
 				const parts: string[] = [];
 				let lastIndex = 0;
-				const matches = Array.from(line.matchAll(equalPattern));
 
-				for (const match of matches) {
+				for (const match of line.matchAll(equalPattern)) {
 					if (match.index === undefined) continue;
 					
-					// Add part before match (the content before the equal sign)
+					// Add part before match
 					if (match.index > lastIndex) {
 						parts.push(line.substring(lastIndex, match.index).trim());
 					}
-					// Don't add the match itself - it's the delimiter
 					lastIndex = match.index + match[0].length;
 				}
 
-				// Add remaining part (the content after the last equal sign)
+				// Add remaining part
 				if (lastIndex < line.length) {
 					parts.push(line.substring(lastIndex).trim());
 				}
 
-				// If no matches found, return the whole line as single part
-				if (parts.length === 0) {
-					return [line.trim()];
-				}
-
-				return parts;
+				return parts.length > 0 ? parts : [line.trim()];
 			});
 		}
 
@@ -136,55 +141,29 @@ export class AlignmentEngineImpl implements AlignmentEngine {
 		return isWideDelimiter ? delimiter : ` ${delimiter} `;
 	}
 
-	private computeColumnWidths(rows: string[][], filter?: (data: {
-		row: number;
-		ROW: number;
-		col: number;
-		COL: number;
-		s: string;
-		n: number;
-		N: number;
-	}) => boolean): number[] {
+	private computeColumnMetrics(
+		trimmedRows: string[][],
+		getFilterResult: (rowIndex: number, colIndex: number, trimmed: string, rowLength: number) => boolean
+	): { columnWidths: number[]; columnHasFullwidth: boolean[] } {
 		const widths: number[] = [];
-
-		rows.forEach((row, rowIndex) => {
-			row.forEach((cell, colIndex) => {
-				const trimmed = cell.trim();
-				const shouldAlign = filter
-					? filter({
-							row: rowIndex,
-							ROW: rows.length,
-							col: colIndex,
-							COL: row.length,
-							s: trimmed,
-							n: Math.ceil((colIndex + 1) / 2),
-							N: Math.ceil(row.length / 2),
-						})
-					: true;
-
-				if (shouldAlign) {
-					const trimmedWidth = displayWidth(trimmed);
-					widths[colIndex] = Math.max(widths[colIndex] ?? 0, trimmedWidth);
-				}
-			});
-		});
-
-		return widths;
-	}
-
-	private computeColumnHasFullwidth(rows: string[][]): boolean[] {
 		const hasFullwidth: boolean[] = [];
 
-		rows.forEach((row) => {
-			row.forEach((cell, index) => {
-				const trimmed = cell.trim();
-				if (this.hasFullwidthCharacters(trimmed)) {
-					hasFullwidth[index] = true;
+		trimmedRows.forEach((row, rowIndex) => {
+			row.forEach((cell, colIndex) => {
+				const shouldAlign = getFilterResult(rowIndex, colIndex, cell, row.length);
+
+				if (shouldAlign) {
+					const cellWidth = displayWidth(cell);
+					widths[colIndex] = Math.max(widths[colIndex] ?? 0, cellWidth);
+				}
+
+				if (this.hasFullwidthCharacters(cell)) {
+					hasFullwidth[colIndex] = true;
 				}
 			});
 		});
 
-		return hasFullwidth;
+		return { columnWidths: widths, columnHasFullwidth: hasFullwidth };
 	}
 
 	private hasFullwidthCharacters(value: string): boolean {
@@ -198,28 +177,7 @@ export class AlignmentEngineImpl implements AlignmentEngine {
 				index += 1;
 			}
 
-			// Check if it's a full-width character (same logic as displayWidth)
-			if (
-				codePoint >= 0x1100 &&
-				(
-					codePoint <= 0x115f ||
-					codePoint === 0x2329 ||
-					codePoint === 0x232a ||
-					(codePoint >= 0x2e80 && codePoint <= 0x3247 && codePoint !== 0x303f) ||
-					(codePoint >= 0x3250 && codePoint <= 0x4dbf) ||
-					(codePoint >= 0x4e00 && codePoint <= 0xa4c6) ||
-					(codePoint >= 0xa960 && codePoint <= 0xa97c) ||
-					(codePoint >= 0xac00 && codePoint <= 0xd7a3) ||
-					(codePoint >= 0xf900 && codePoint <= 0xfaff) ||
-					(codePoint >= 0xfe10 && codePoint <= 0xfe19) ||
-					(codePoint >= 0xfe30 && codePoint <= 0xfe6b) ||
-					(codePoint >= 0xff01 && codePoint <= 0xff60) ||
-					(codePoint >= 0xffe0 && codePoint <= 0xffe6) ||
-					(codePoint >= 0x1b000 && codePoint <= 0x1b001) ||
-					(codePoint >= 0x1f200 && codePoint <= 0x1f251) ||
-					(codePoint >= 0x20000 && codePoint <= 0x3fffd)
-				)
-			) {
+			if (isFullwidthCodePoint(codePoint)) {
 				return true;
 			}
 		}

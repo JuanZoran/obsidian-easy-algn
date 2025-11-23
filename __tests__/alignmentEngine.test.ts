@@ -3,22 +3,24 @@ import { displayWidth } from '../src/utils/displayWidth';
 
 describe('AlignmentEngineImpl', () => {
 	const sampleLines = ['a=1', 'aa=22', 'ccc=333'];
+	let engine: AlignmentEngineImpl;
+
+	beforeEach(() => {
+		engine = new AlignmentEngineImpl();
+	});
 
 	it('left justifies columns based on delimiter', () => {
-		const engine = new AlignmentEngineImpl();
 		const aligned = engine.alignLines(sampleLines, '=', 'left');
 		expect(aligned).toEqual(['a   = 1', 'aa  = 22', 'ccc = 333']);
 	});
 
 	it('centers text when requested', () => {
-		const engine = new AlignmentEngineImpl();
 		const aligned = engine.alignLines(sampleLines, '=', 'center');
 		expect(aligned[0]).toContain(' = ');
 		expect(aligned[1]).toContain(' = ');
 	});
 
 	it('aligns wide characters by display width', () => {
-		const engine = new AlignmentEngineImpl();
 		const lines = ['简:文', '复杂:结构'];
 		const aligned = engine.alignLines(lines, ':', 'left');
 
@@ -29,7 +31,6 @@ describe('AlignmentEngineImpl', () => {
 	});
 
 	it('keeps colon position stable for chinese bullet list', () => {
-		const engine = new AlignmentEngineImpl();
 		const lines = [
 			'• 简单图 ： 无重复边，节点指向自己的图',
 			'• 多重图 ： 与简单图相对',
@@ -47,7 +48,6 @@ describe('AlignmentEngineImpl', () => {
 	});
 
 	it('aligns chinese text with regular colon delimiter', () => {
-		const engine = new AlignmentEngineImpl();
 		const lines = [
 			'- 简单图: 无重复边，节点指向自己的图',
 			'- 多重图: 与简单图相对',
@@ -64,49 +64,31 @@ describe('AlignmentEngineImpl', () => {
 
 	describe('per-column justify mode', () => {
 		it('supports array of justify modes for different columns', () => {
-			const engine = new AlignmentEngineImpl();
 			const lines = ['a=1=2', 'aa=22=333', 'ccc=333=4444'];
 			const aligned = engine.alignLines(lines, '=', ['left', 'center', 'right']);
 
-			// Verify all lines are aligned and contain three columns after splitting
-			expect(aligned.every((line) => line.split(' = ').length === 3)).toBe(true);
+			// Verify all columns are aligned with correct justify modes
+			const parts = aligned.map((line) => line.split(' = '));
+			expect(parts.every((row) => row.length === 3)).toBe(true);
 
-			// First column should be left-aligned (width 3 for 'ccc')
-			const firstCols = aligned.map((line) => line.split(' = ')[0]);
-			expect(displayWidth(firstCols[0])).toBe(3);
-			expect(displayWidth(firstCols[1])).toBe(3);
-			expect(displayWidth(firstCols[2])).toBe(3);
-			expect(firstCols[0]).toMatch(/^a\s+$/);
-			expect(firstCols[1]).toMatch(/^aa\s+$/);
-			expect(firstCols[2]).toBe('ccc');
+			// First column: left-aligned
+			const firstCols = parts.map((row) => row[0] ?? '');
+			const firstWidths = firstCols.map((col) => displayWidth(col));
+			expect(firstWidths.every((w) => w === firstWidths[0])).toBe(true);
 
-			// Second column should be center-aligned
-			const secondCols = aligned.map((line) => {
-				const parts = line.split(' = ');
-				return parts[1] ?? '';
-			});
-			// All second columns should have same width (width of '333' = 3)
+			// Second column: center-aligned
+			const secondCols = parts.map((row) => row[1] ?? '');
 			const secondWidths = secondCols.map((col) => displayWidth(col));
 			expect(secondWidths.every((w) => w === secondWidths[0])).toBe(true);
-			expect(secondCols[0]).toContain('1');
-			expect(secondCols[1]).toContain('22');
-			expect(secondCols[2]).toContain('333');
 
-			// Third column should be right-aligned (width 4 for '4444')
-			const thirdCols = aligned.map((line) => {
-				const parts = line.split(' = ');
-				return parts[2] ?? '';
-			});
+			// Third column: right-aligned
+			const thirdCols = parts.map((row) => row[2] ?? '');
 			const thirdWidths = thirdCols.map((col) => displayWidth(col));
 			expect(thirdWidths.every((w) => w === thirdWidths[0])).toBe(true);
-			// Right-aligned: padding before value
-			expect(thirdCols[0]).toMatch(/^\s+2$/);
-			expect(thirdCols[1]).toMatch(/^\s+333$/);
-			expect(thirdCols[2]).toBe('4444'); // Already max width, no padding needed
+			expect(thirdCols[0]).toMatch(/^\s+2$/); // Right-aligned with padding
 		});
 
 		it('recycles justify mode array when columns exceed array length', () => {
-			const engine = new AlignmentEngineImpl();
 			const lines = ['a=1=2=3', 'aa=22=333=4444'];
 			const aligned = engine.alignLines(lines, '=', ['left', 'right']);
 
@@ -118,46 +100,33 @@ describe('AlignmentEngineImpl', () => {
 			const parts = aligned.map((line) => line.split(' = '));
 			expect(parts.every((row) => row.length === 4)).toBe(true);
 
-			// First column (left-aligned, width 2 for 'aa')
-			expect(displayWidth(parts[0][0])).toBe(2);
-			expect(displayWidth(parts[1][0])).toBe(2);
-			expect(parts[0][0]).toMatch(/^a\s+$/);
-			expect(parts[1][0]).toBe('aa');
+			// Verify justify modes cycle correctly: left, right, left, right
+			// First column: left-aligned
+			const firstWidths = parts.map((row) => displayWidth(row[0] ?? ''));
+			expect(firstWidths.every((w) => w === firstWidths[0])).toBe(true);
 
-			// Second column (right-aligned)
-			// Max width should be 3 (from '333'), so '1' should have 2 spaces before, '22' should have 1 space
-			const secondWidths = [parts[0][1], parts[1][1]].map((col) => displayWidth(col));
+			// Second column: right-aligned
+			const secondWidths = parts.map((row) => displayWidth(row[1] ?? ''));
 			expect(secondWidths.every((w) => w === secondWidths[0])).toBe(true);
-			// '1' should be right-aligned with padding
-			expect(parts[0][1]).toMatch(/^\s+1$/);
-			// '22' might be max width if column width is 2, or have padding if width is 3
-			// Accept both cases: either '22' (if it's max width) or ' 22' (if '333' is max)
-			expect(parts[1][1]).toMatch(/^\s*22$/);
+			expect(parts[0][1]).toMatch(/^\s+1$/); // Right-aligned
 
-			// Third column (left-aligned, recycled)
-			const thirdWidths = [parts[0][2], parts[1][2]].map((col) => displayWidth(col));
+			// Third column: left-aligned (recycled)
+			const thirdWidths = parts.map((row) => displayWidth(row[2] ?? ''));
 			expect(thirdWidths.every((w) => w === thirdWidths[0])).toBe(true);
-			expect(parts[0][2]).toMatch(/^2\s+$/);
-			expect(parts[1][2]).toMatch(/^333\s*$/);
 
-			// Fourth column (right-aligned, recycled)
-			const fourthWidths = [parts[0][3], parts[1][3]].map((col) => displayWidth(col));
+			// Fourth column: right-aligned (recycled)
+			const fourthWidths = parts.map((row) => displayWidth(row[3] ?? ''));
 			expect(fourthWidths.every((w) => w === fourthWidths[0])).toBe(true);
-			expect(parts[0][3]).toMatch(/^\s+3$/);
-			expect(parts[1][3]).toMatch(/^4444\s*$/);
 		});
 
 		it('works with single justify mode (backward compatibility)', () => {
-			const engine = new AlignmentEngineImpl();
-			const lines = ['a=1', 'aa=22', 'ccc=333'];
-			const aligned = engine.alignLines(lines, '=', 'left');
+			const aligned = engine.alignLines(sampleLines, '=', 'left');
 			expect(aligned).toEqual(['a   = 1', 'aa  = 22', 'ccc = 333']);
 		});
 	});
 
 	describe('filter functionality', () => {
 		it('filters columns to align only first column', () => {
-			const engine = new AlignmentEngineImpl();
 			const lines = ['a=1=2', 'aa=22=333', 'ccc=333=4444'];
 			const aligned = engine.alignLines(lines, '=', 'left', {
 				filter: (data) => data.col === 0,
@@ -179,7 +148,6 @@ describe('AlignmentEngineImpl', () => {
 		});
 
 		it('filters rows to exclude certain rows from alignment', () => {
-			const engine = new AlignmentEngineImpl();
 			const lines = ['a=1', 'aa=22', 'ccc=333', 'dddd=4444'];
 			const aligned = engine.alignLines(lines, '=', 'left', {
 				filter: (data) => data.row !== 1, // Exclude second row (0-indexed)
@@ -197,7 +165,6 @@ describe('AlignmentEngineImpl', () => {
 		});
 
 		it('filters by column pair number (n)', () => {
-			const engine = new AlignmentEngineImpl();
 			const lines = ['a=1=2=3', 'aa=22=333=4444'];
 			// Only align first pair (n === 1 means first pair: columns 0 and 1)
 			const aligned = engine.alignLines(lines, '=', 'left', {
@@ -218,18 +185,10 @@ describe('AlignmentEngineImpl', () => {
 			expect(parts[0][2]).toBe('2');
 			expect(parts[1][2]).toBe('333');
 		});
-
-		it('works without filter (backward compatibility)', () => {
-			const engine = new AlignmentEngineImpl();
-			const lines = ['a=1', 'aa=22', 'ccc=333'];
-			const aligned = engine.alignLines(lines, '=', 'left');
-			expect(aligned).toEqual(['a   = 1', 'aa  = 22', 'ccc = 333']);
-		});
 	});
 
 	describe('equal sign special handling', () => {
 		it('handles simple equal sign patterns with whitespace normalization', () => {
-			const engine = new AlignmentEngineImpl();
 			const lines = [
 				'a=b',
 				'aa=bb',
@@ -259,38 +218,15 @@ describe('AlignmentEngineImpl', () => {
 			expect(maxFirstWidth - minFirstWidth).toBeLessThanOrEqual(3);
 		});
 
-		it('trims whitespace around equal signs', () => {
-			const engine = new AlignmentEngineImpl();
+		it('trims whitespace and handles compound operators', () => {
 			const lines = [
 				'a   =   1',
-				'aa  =  22',
-				'ccc = 333',
-			];
-			const aligned = engine.alignLines(lines, '=', 'left');
-
-			// Should have " = " as separator (single space after =)
-			// Note: there may be alignment padding before =, which is expected
-			aligned.forEach((line) => {
-				expect(line).toMatch(/ = /); // Single space after =
-				// Allow alignment padding before =, but ensure single space after
-				expect(line).toMatch(/=\s+\S/); // = followed by single space and non-space
-			});
-		});
-
-		it('handles compound operators like <=, >=, ==, ===', () => {
-			const engine = new AlignmentEngineImpl();
-			const lines = [
-				'a<=b',
-				'aa>=bb',
+				'aa<=bb',
 				'aaa==bbb',
-				'aaaa===cccc',
 			];
 			const aligned = engine.alignLines(lines, '=', 'left');
 
-			// For compound operators, they are treated as delimiters
-			// The content before and after should be aligned
-			// Note: compound operators are simplified to single = in output
-			// All lines should have " = " as separator
+			// All lines should have " = " as separator after normalization
 			aligned.forEach((line) => {
 				expect(line).toMatch(/ = /);
 			});

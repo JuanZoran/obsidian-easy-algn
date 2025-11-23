@@ -2,17 +2,27 @@ import { AlignmentOverlay } from "../src/easyAlign/overlay";
 import { AlignmentCustomizationControllerImpl } from "../src/easyAlign/interaction";
 
 describe("AlignmentOverlay", () => {
+	let lines: string[];
+	let controller: AlignmentCustomizationControllerImpl;
+	let previewSpy: jest.Mock;
+	let confirmSpy: jest.Mock;
+	let cancelSpy: jest.Mock;
+	let overlay: AlignmentOverlay;
+
+	beforeEach(() => {
+		lines = ["a=1", "aa=22"];
+		controller = new AlignmentCustomizationControllerImpl();
+		previewSpy = jest.fn();
+		confirmSpy = jest.fn();
+		cancelSpy = jest.fn();
+		overlay = new AlignmentOverlay(lines, controller, previewSpy, confirmSpy, cancelSpy);
+	});
+
 	afterEach(() => {
 		document.body.innerHTML = "";
 	});
 
 	it("focuses delimiter input, updates preview, and confirms on Enter", async () => {
-		const lines = ["a=1", "aa=22"];
-		const controller = new AlignmentCustomizationControllerImpl();
-		const previewSpy = jest.fn();
-		const confirmSpy = jest.fn();
-		const cancelSpy = jest.fn();
-		const overlay = new AlignmentOverlay(lines, controller, previewSpy, confirmSpy, cancelSpy);
 
 		overlay.open();
 
@@ -43,12 +53,6 @@ describe("AlignmentOverlay", () => {
 	});
 
 	it("cancels via Escape and removes overlay", () => {
-		const lines = ["a=1"];
-		const controller = new AlignmentCustomizationControllerImpl();
-		const previewSpy = jest.fn();
-		const confirmSpy = jest.fn();
-		const cancelSpy = jest.fn();
-		const overlay = new AlignmentOverlay(lines, controller, previewSpy, confirmSpy, cancelSpy);
 
 		overlay.open();
 

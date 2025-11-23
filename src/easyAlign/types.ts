@@ -1,19 +1,3 @@
-export interface AlignmentRule {
-	id: string;
-	trigger: string;
-	description: string;
-}
-
-export interface AlignmentStore {
-	loadRules(): Promise<AlignmentRule[]>;
-}
-
-export interface AlignmentService {
-	load(): Promise<void>;
-	getRuleById(id: string): AlignmentRule | undefined;
-	getAllRules(): AlignmentRule[];
-}
-
 export type JustifyMode = 'left' | 'center' | 'right';
 
 export type JustifyModeOrArray = JustifyMode | JustifyMode[];

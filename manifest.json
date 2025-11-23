@@ -3,7 +3,7 @@
 	"name": "Easy Align",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "TODO",
+	"description": "Align table-like text by detecting delimiters and padding cells so columns line up in the editor and after rendering.",
 	"author": "Obsidian",
 	"authorUrl": "https://obsidian.md",
 	"fundingUrl": "https://obsidian.md/pricing",

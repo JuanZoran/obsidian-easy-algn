@@ -1,4 +1,4 @@
-const isFullwidthCodePoint = (codePoint: number): boolean => {
+export const isFullwidthCodePoint = (codePoint: number): boolean => {
 	if (Number.isNaN(codePoint)) {
 		return false;
 	}

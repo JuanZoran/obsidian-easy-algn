@@ -1,8 +1,6 @@
-import { Editor, MarkdownView, Notice, Plugin } from "obsidian";
+import { Editor, Notice, Plugin } from "obsidian";
 import {
 	AlignmentEngineImpl,
-	AlignmentServiceImpl,
-	InMemoryAlignmentStore,
 	AlignmentCustomizationControllerImpl,
 	AlignmentOverlay,
 	DEFAULT_ALIGNMENT_SETTINGS,
@@ -11,12 +9,9 @@ import { detectDelimiter } from "./src/utils/detectDelimiter";
 import type { AlignmentSettingsData } from "./src/easyAlign/types";
 
 export default class EasyAlignPlugin extends Plugin {
-	private readonly alignmentService = new AlignmentServiceImpl(new InMemoryAlignmentStore());
 	private readonly engine = new AlignmentEngineImpl();
 
 	async onload() {
-		await this.alignmentService.load();
-
 		this.addCommand({
 			id: "easy-align-selection",
 			name: "Align selection with defaults",
@@ -28,15 +23,10 @@ export default class EasyAlignPlugin extends Plugin {
 			name: "Align selection interactively",
 			editorCallback: (editor: Editor) => this.promptInteractiveAlignment(editor),
 		});
-
-		const totalRules = this.alignmentService.getAllRules().length;
-		console.log(`EasyAlignPlugin loaded with ${totalRules} rule(s)`);
-
-		this.registerLivePreviewRenderer();
 	}
 
 	onunload() {
-		console.log("EasyAlignPlugin unloaded");
+		// Plugin unloaded
 	}
 
 	private alignWithOptions(editor: Editor, options: AlignmentSettingsData) {
@@ -102,36 +92,5 @@ export default class EasyAlignPlugin extends Plugin {
 		);
 
 		overlay.open();
-	}
-
-	private registerLivePreviewRenderer() {
-		this.registerMarkdownPostProcessor((element) => {
-			this.applyLivePreviewClass(element);
-		});
-	}
-
-	private applyLivePreviewClass(root: HTMLElement) {
-		const selector = "p, li, div, code, pre, span";
-		const nodes = Array.from(root.querySelectorAll<HTMLElement>(selector));
-
-		for (const node of nodes) {
-			const text = node.textContent ?? "";
-			const lines = text.split("\n").filter((line) => line.trim().length);
-			if (lines.length < 2) {
-				continue;
-			}
-
-			const delimiter = detectDelimiter(lines);
-			if (!delimiter) {
-				continue;
-			}
-
-			const matches = lines.filter((line) => line.includes(delimiter));
-			if (matches.length < 2) {
-				continue;
-			}
-
-			node.classList.add("easy-align-live-preview");
-		}
 	}
 }
