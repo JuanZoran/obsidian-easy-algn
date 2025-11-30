@@ -20,14 +20,22 @@ export class AlignmentEngineImpl implements AlignmentEngine {
 			? this.preprocessEqualSignLines(lines)
 			: lines;
 
-		// For equal sign special handling, use " = " as glue (already normalized in preprocessing)
+		// Determine if spaces should be added around delimiter
+		const addSpaces = options?.addSpacesAroundDelimiter !== false; // Default to true for backward compatibility
+		const useFullwidthSpaces = options?.useFullwidthSpaces === true;
+		
+		// For equal sign special handling, use " = " or "=" based on addSpaces option
 		const glue = isEqualSign
-			? ' = ' 
-			: this.getDelimiterGlue(delimiter);
+			? this.getEqualGlue(addSpaces, useFullwidthSpaces)
+			: this.getDelimiterGlue(delimiter, addSpaces, useFullwidthSpaces);
 		const rows = this.splitLines(processedLines, delimiter, isEqualSign);
 		
 		// Pre-trim all cells once to avoid repeated trim() calls
-		const trimmedRows = rows.map(row => row.map(cell => cell.trim()));
+		// Only trim if trimWhitespace option is true (defaults to true for backward compatibility)
+		const shouldTrim = options?.trimWhitespace !== false;
+		const trimmedRows = shouldTrim
+			? rows.map(row => row.map(cell => cell.trim()))
+			: rows;
 		
 		const filter = options?.filter;
 		// Cache filter results to avoid duplicate calls
@@ -51,7 +59,7 @@ export class AlignmentEngineImpl implements AlignmentEngine {
 			return result;
 		};
 		
-		const { columnWidths, columnHasFullwidth } = this.computeColumnMetrics(trimmedRows, getFilterResult);
+		const { columnWidths } = this.computeColumnMetrics(trimmedRows, getFilterResult);
 		const justifyModes = this.normalizeJustifyModes(justify);
 
 		return trimmedRows.map((row, rowIndex) => {
@@ -63,9 +71,8 @@ export class AlignmentEngineImpl implements AlignmentEngine {
 				}
 
 				const targetWidth = columnWidths[colIndex] ?? displayWidth(cell);
-				const useFullwidth = columnHasFullwidth[colIndex] ?? false;
 				const columnJustify = this.getColumnJustifyMode(justifyModes, colIndex);
-				const padded = this.padCell(cell, targetWidth, columnJustify, useFullwidth);
+				const padded = this.padCell(cell, targetWidth, columnJustify, useFullwidthSpaces);
 				return padded;
 			});
 
@@ -129,7 +136,15 @@ export class AlignmentEngineImpl implements AlignmentEngine {
 		return justifyModes[columnIndex % justifyModes.length];
 	}
 
-	private getDelimiterGlue(delimiter: string): string {
+	private getEqualGlue(addSpaces: boolean, useFullwidthSpaces: boolean): string {
+		if (!addSpaces) {
+			return '=';
+		}
+		const space = useFullwidthSpaces ? '　' : ' ';
+		return `${space}=${space}`;
+	}
+
+	private getDelimiterGlue(delimiter: string, addSpaces: boolean = true, useFullwidthSpaces: boolean = false): string {
 		if (!delimiter.length) {
 			return delimiter;
 		}
@@ -138,7 +153,18 @@ export class AlignmentEngineImpl implements AlignmentEngine {
 		const isSingleCodePoint = codePoints.length === 1;
 		const isWideDelimiter = isSingleCodePoint && displayWidth(delimiter) > 1;
 
-		return isWideDelimiter ? delimiter : ` ${delimiter} `;
+		// For wide delimiters (like Chinese colon), don't add spaces
+		if (isWideDelimiter) {
+			return delimiter;
+		}
+
+		// For regular delimiters, add spaces if addSpaces is true
+		if (!addSpaces) {
+			return delimiter;
+		}
+
+		const space = useFullwidthSpaces ? '　' : ' ';
+		return `${space}${delimiter}${space}`;
 	}
 
 	private computeColumnMetrics(
@@ -185,14 +211,17 @@ export class AlignmentEngineImpl implements AlignmentEngine {
 	}
 
 	private createPadding(displayUnits: number, useFullwidth: boolean): string {
+		if (displayUnits <= 0) {
+			return '';
+		}
+
 		if (!useFullwidth) {
 			return ' '.repeat(displayUnits);
 		}
 
-		// Use a mix of full-width spaces (2 units) and regular spaces (1 unit)
 		const fullwidthCount = Math.floor(displayUnits / 2);
-		const regularCount = displayUnits % 2;
-		return '\u3000'.repeat(fullwidthCount) + ' '.repeat(regularCount);
+		const needsHalfWidth = displayUnits % 2 !== 0;
+		return '　'.repeat(fullwidthCount) + (needsHalfWidth ? ' ' : '');
 	}
 
 	private padCell(value: string, width: number, justify: JustifyMode, useFullwidthSpace: boolean): string {

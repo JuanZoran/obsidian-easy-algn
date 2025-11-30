@@ -62,6 +62,22 @@ describe('AlignmentEngineImpl', () => {
 		expect(leftWidths.every((width) => width === leftWidths[0])).toBe(true);
 	});
 
+	it('aligns text with emojis correctly', () => {
+		const lines = [
+			'- status        : ||n. 地位||',
+			'- check         : ||n.抑制||',
+			'- row ⭐         : ||n.争论||',
+			'- act ⭐         : ||n.法案||',
+			'- address ⭐     : ||n.演说，致辞；v.解决，处理||',
+		];
+		const aligned = engine.alignLines(lines, ':', 'left');
+		
+		const leftParts = aligned.map((line) => line.split(' : ')[0]);
+		const leftWidths = leftParts.map((part) => displayWidth(part));
+		// All left parts should have the same display width
+		expect(leftWidths.every((width) => width === leftWidths[0])).toBe(true);
+	});
+
 	describe('per-column justify mode', () => {
 		it('supports array of justify modes for different columns', () => {
 			const lines = ['a=1=2', 'aa=22=333', 'ccc=333=4444'];
@@ -230,6 +246,76 @@ describe('AlignmentEngineImpl', () => {
 			aligned.forEach((line) => {
 				expect(line).toMatch(/ = /);
 			});
+		});
+	});
+
+	describe('addSpacesAroundDelimiter option', () => {
+		it('adds spaces around delimiter when enabled (default)', () => {
+			const lines = ['a:1', 'bb:22', 'ccc:333'];
+			const aligned = engine.alignLines(lines, ':', 'left');
+			
+			// Should have spaces around colon
+			expect(aligned[0]).toContain(' : ');
+			expect(aligned[1]).toContain(' : ');
+			expect(aligned[2]).toContain(' : ');
+		});
+
+		it('does not add spaces around delimiter when disabled', () => {
+			const lines = ['a:1', 'bb:22', 'ccc:333'];
+			const aligned = engine.alignLines(lines, ':', 'left', {
+				addSpacesAroundDelimiter: false,
+			});
+			
+			// Should not have spaces around colon
+			expect(aligned[0]).toContain(':');
+			expect(aligned[0]).not.toContain(' : ');
+			expect(aligned[1]).toContain(':');
+			expect(aligned[1]).not.toContain(' : ');
+		});
+
+		it('handles equal sign with addSpacesAroundDelimiter option', () => {
+			const lines = ['a=1', 'bb=22'];
+			
+			// With spaces (default)
+			const alignedWithSpaces = engine.alignLines(lines, '=', 'left');
+			expect(alignedWithSpaces[0]).toContain(' = ');
+			
+			// Without spaces
+			const alignedWithoutSpaces = engine.alignLines(lines, '=', 'left', {
+				addSpacesAroundDelimiter: false,
+			});
+			expect(alignedWithoutSpaces[0]).toContain('=');
+			expect(alignedWithoutSpaces[0]).not.toContain(' = ');
+		});
+	});
+
+	describe('useFullwidthSpaces option', () => {
+		it('uses fullwidth spaces around delimiter when enabled', () => {
+			const lines = ['a=1', 'aaaa=22'];
+			const aligned = engine.alignLines(lines, '=', 'left', { useFullwidthSpaces: true });
+
+			expect(aligned[0]).toContain('　=　');
+			const parts = aligned.map((line) => line.split('　=　'));
+			expect(parts.every((row) => row.length === 2)).toBe(true);
+
+			const leftWidths = parts.map((row) => displayWidth(row[0] ?? ''));
+			expect(leftWidths.every((width) => width === leftWidths[0])).toBe(true);
+			expect(parts[0][0]).toContain('　'); // padding should include fullwidth space
+		});
+
+		it('keeps alignment width accurate when padding mixes fullwidth and halfwidth spaces', () => {
+			const lines = ['短:1', '较长内容:22'];
+			const aligned = engine.alignLines(lines, ':', 'left', { useFullwidthSpaces: true });
+
+			const glue = '　:　';
+			expect(aligned.every((line) => line.includes(glue))).toBe(true);
+
+			const leftWidths = aligned.map((line) => {
+				const [left] = line.split(glue);
+				return displayWidth(left ?? '');
+			});
+
+			expect(leftWidths.every((width) => width === leftWidths[0])).toBe(true);
 		});
 	});
 });

@@ -14,6 +14,9 @@ export type FilterPredicate = (data: {
 
 export interface AlignmentOptions {
 	filter?: FilterPredicate;
+	trimWhitespace?: boolean;
+	addSpacesAroundDelimiter?: boolean;
+	useFullwidthSpaces?: boolean;
 }
 
 export interface AlignmentEngine {

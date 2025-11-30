@@ -3,6 +3,17 @@ export const isFullwidthCodePoint = (codePoint: number): boolean => {
 		return false;
 	}
 
+	// Check emoji ranges first (they should be counted as fullwidth)
+	if (
+		(codePoint >= 0x2600 && codePoint <= 0x26FF) || // Miscellaneous Symbols
+		(codePoint >= 0x2700 && codePoint <= 0x27BF) || // Dingbats
+		(codePoint >= 0x2B00 && codePoint <= 0x2BFF) || // Miscellaneous Symbols and Arrows (includes ⭐ U+2B50)
+		(codePoint >= 0x1F300 && codePoint <= 0x1F9FF) || // Miscellaneous Symbols and Pictographs, Emoticons
+		(codePoint >= 0x1FA00 && codePoint <= 0x1FAFF) // Symbols and Pictographs Extended-A
+	) {
+		return true;
+	}
+
 	if (
 		codePoint >= 0x1100 &&
 		(

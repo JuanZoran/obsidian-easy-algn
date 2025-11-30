@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify tag matches manifest version
+        run: |
+          MANIFEST_VERSION=$(node -p "require('./manifest.json').version")
+          if [ "$MANIFEST_VERSION" != "${GITHUB_REF_NAME#refs/tags/}" ]; then
+            echo "Tag (${GITHUB_REF_NAME}) does not match manifest version ($MANIFEST_VERSION)"
+            exit 1
+          fi
+
+      - name: Build plugin
+        run: npm run build
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Easy Align ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            build/main.js
+            build/manifest.json
+            build/styles.css
