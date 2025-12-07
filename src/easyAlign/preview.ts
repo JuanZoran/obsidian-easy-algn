@@ -1,4 +1,4 @@
-import { AlignmentEngineImpl } from "./engine";
+import { AlignmentEngineImpl } from "../core/alignment/AlignmentEngineImpl";
 import type { JustifyModeOrArray } from "./types";
 
 /**

@@ -1,6 +1,9 @@
-import { AlignmentCustomizationControllerImpl } from "./interaction";
-import type { AlignmentSettingsData } from "./types";
+import { AlignmentController } from './AlignmentController';
+import type { AlignmentSettingsData } from '../../easyAlign/types';
 
+/**
+ * UI overlay for interactive alignment
+ */
 export class AlignmentOverlay {
 	private container?: HTMLDivElement;
 	private confirmButton?: HTMLButtonElement;
@@ -10,7 +13,7 @@ export class AlignmentOverlay {
 
 	constructor(
 		private readonly lines: string[],
-		private readonly controller: AlignmentCustomizationControllerImpl,
+		private readonly controller: AlignmentController,
 		private readonly onPreviewChange: (options: AlignmentSettingsData) => void,
 		private readonly onConfirm: (options: AlignmentSettingsData) => void,
 		private readonly onCancel: () => void,
@@ -21,8 +24,8 @@ export class AlignmentOverlay {
 			return;
 		}
 
-		this.container = document.createElement("div");
-		this.container.className = "align-overlay";
+		this.container = document.createElement('div');
+		this.container.className = 'align-overlay';
 		this.container.innerHTML = `
 			<div class="align-overlay-body">
 				<h4 class="align-overlay-title">Customize alignment</h4>
@@ -43,8 +46,8 @@ export class AlignmentOverlay {
 
 		const delimiterInput = this.container.querySelector<HTMLInputElement>('input[name="delimiter"]');
 		const justifySelect = this.container.querySelector<HTMLSelectElement>('select[name="justify"]');
-		const confirmButton = this.container.querySelector<HTMLButtonElement>(".align-overlay-confirm");
-		const cancelButton = this.container.querySelector<HTMLButtonElement>(".align-overlay-cancel");
+		const confirmButton = this.container.querySelector<HTMLButtonElement>('.align-overlay-confirm');
+		const cancelButton = this.container.querySelector<HTMLButtonElement>('.align-overlay-cancel');
 
 		if (!delimiterInput || !justifySelect || !confirmButton || !cancelButton) {
 			return;
@@ -55,9 +58,9 @@ export class AlignmentOverlay {
 		this.confirmButton = confirmButton;
 		this.cancelButton = cancelButton;
 
-		const justifyOptions = ["left", "center", "right"] as const;
+		const justifyOptions = ['left', 'center', 'right'] as const;
 		justifyOptions.forEach((mode) => {
-			const option = document.createElement("option");
+			const option = document.createElement('option');
 			option.value = mode;
 			option.textContent = mode[0].toUpperCase() + mode.slice(1);
 			justifySelect.appendChild(option);
@@ -91,26 +94,26 @@ export class AlignmentOverlay {
 		};
 
 		const handleKeyDown = (event: KeyboardEvent) => {
-			if (event.key === "Enter") {
+			if (event.key === 'Enter') {
 				event.preventDefault();
 				void handleSubmit();
 				return;
 			}
-			if (event.key === "Escape") {
+			if (event.key === 'Escape') {
 				event.preventDefault();
 				handleCancel();
 			}
 		};
 
-		delimiterInput.addEventListener("input", handleInputChange);
-		justifySelect.addEventListener("change", handleInputChange);
-		this.container.addEventListener("keydown", handleKeyDown);
+		delimiterInput.addEventListener('input', handleInputChange);
+		justifySelect.addEventListener('change', handleInputChange);
+		this.container.addEventListener('keydown', handleKeyDown);
 
-		confirmButton.addEventListener("click", () => {
+		confirmButton.addEventListener('click', () => {
 			void handleSubmit();
 		});
 
-		cancelButton.addEventListener("click", handleCancel);
+		cancelButton.addEventListener('click', handleCancel);
 
 		document.body.appendChild(this.container);
 		applyCurrentState();

@@ -1,9 +1,9 @@
-import { AlignmentCustomizationControllerImpl } from '../src/easyAlign/interaction';
+import { AlignmentController } from '../src/plugins/ui/AlignmentController';
 import { DEFAULT_ALIGNMENT_SETTINGS } from '../src/easyAlign/defaults';
 
-describe('AlignmentCustomizationControllerImpl', () => {
+describe('AlignmentController', () => {
 	it('returns sanitized delimiter and justify data', async () => {
-		const controller = new AlignmentCustomizationControllerImpl({
+		const controller = new AlignmentController({
 			delimiter: ':',
 			justify: 'center',
 		});
@@ -20,7 +20,7 @@ describe('AlignmentCustomizationControllerImpl', () => {
 	});
 
 	it('falls back to defaults when delimiter input is whitespace only', async () => {
-		const controller = new AlignmentCustomizationControllerImpl();
+		const controller = new AlignmentController();
 		controller.setDelimiter('   ');
 		const result = await controller.submit();
 

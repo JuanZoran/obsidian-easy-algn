@@ -1,5 +1,5 @@
+// Re-export for backward compatibility
 export * from './types';
-export * from './engine';
 export * from './defaults';
-export * from './interaction';
-export * from './overlay';
+export * from '../core/alignment/AlignmentEngine';
+export * from '../core/alignment/AlignmentEngineImpl';

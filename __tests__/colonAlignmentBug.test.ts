@@ -1,4 +1,4 @@
-import { AlignmentEngineImpl } from '../src/easyAlign/engine';
+import { AlignmentEngineImpl } from '../src/easyAlign';
 import { displayWidth } from '../src/utils/displayWidth';
 
 describe('Colon alignment bug', () => {

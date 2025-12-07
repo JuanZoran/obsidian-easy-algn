@@ -13,7 +13,6 @@
 - [x] 把 overlay 的“预览区域”移除，改为在选中文本区域实时替换对齐结果（只保留一个简洁的输入面板），在输入变化时立即调用 `applyPreviewToEditor` 将对齐结果写回原位置，按 Enter 即可确认，Esc/Cancel 恢复原始文本。
 - [x] 使用 `posToOffset`/`offsetToPos` 固定起始 offset，避免每次 preview 都复制块，确保每次输入只在原区域内回写。
 - [x] 更新相关测试（`alignmentOverlay.test.ts`）以断言聚焦、Enter、Esc 路径。
-- [ ] 在 overlay 中记录最后一次预览状态，用于 `Enter` 确认前如果用户未做改动可以避免重写。
 - [x] 自动检测常见分隔符（`:`, `=`, `,`, `|`, `：`, `;`）并把结果作为 initial delimiter，保证打开 overlay 时已经有合理默认值。
 - [x] ~~Live Preview 渲染增强：对包含对齐符号的行在预览中应用 monospace + `white-space: pre` 样式，确保渲染端与源码一样对齐。~~ (已移除：该功能未完成且无实际作用)
 

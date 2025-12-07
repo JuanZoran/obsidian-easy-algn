@@ -1,9 +1,9 @@
-import { AlignmentOverlay } from "../src/easyAlign/overlay";
-import { AlignmentCustomizationControllerImpl } from "../src/easyAlign/interaction";
+import { AlignmentOverlay } from "../src/plugins/ui/AlignmentOverlay";
+import { AlignmentController } from "../src/plugins/ui/AlignmentController";
 
 describe("AlignmentOverlay", () => {
 	let lines: string[];
-	let controller: AlignmentCustomizationControllerImpl;
+	let controller: AlignmentController;
 	let previewSpy: jest.Mock;
 	let confirmSpy: jest.Mock;
 	let cancelSpy: jest.Mock;
@@ -11,7 +11,7 @@ describe("AlignmentOverlay", () => {
 
 	beforeEach(() => {
 		lines = ["a=1", "aa=22"];
-		controller = new AlignmentCustomizationControllerImpl();
+		controller = new AlignmentController();
 		previewSpy = jest.fn();
 		confirmSpy = jest.fn();
 		cancelSpy = jest.fn();

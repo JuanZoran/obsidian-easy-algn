@@ -19,14 +19,9 @@ export interface AlignmentOptions {
 	useFullwidthSpaces?: boolean;
 }
 
-export interface AlignmentEngine {
-	alignLines(
-		lines: string[],
-		delimiter: string,
-		justify: JustifyModeOrArray,
-		options?: AlignmentOptions
-	): string[];
-}
+// AlignmentEngine is now exported from core/alignment/AlignmentEngine
+// Re-export for backward compatibility
+export type { AlignmentEngine } from '../core/alignment/AlignmentEngine';
 
 export interface AlignmentSettingsData {
 	delimiter: string;
