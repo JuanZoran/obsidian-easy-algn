@@ -1,9 +1,17 @@
 import { displayWidth, isFullwidthCodePoint } from '../../utils/displayWidth';
+import { toObsidianLivePreviewText } from './obsidianLivePreviewText';
+
+export interface DisplayWidthOptions {
+	ignoreMarkdownSyntax?: boolean;
+}
 
 /**
  * Calculate the display width of text
  */
-export function calculateDisplayWidth(text: string): number {
+export function calculateDisplayWidth(text: string, options?: DisplayWidthOptions): number {
+	if (options?.ignoreMarkdownSyntax) {
+		return displayWidth(toObsidianLivePreviewText(text));
+	}
 	return displayWidth(text);
 }
 

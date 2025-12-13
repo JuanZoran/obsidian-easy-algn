@@ -52,12 +52,14 @@ export class InteractiveAlignCommand implements ICommandHandler {
 		let currentEndOffset = editorService.posToOffset(selectionEnd);
 		const originalSelection = selection;
 		const settings = this.settingsService.getSettings();
+		const ignoreMarkdownSyntax = editorService.isLivePreview();
 
 		const applyPreviewToEditor = (options: AlignmentSettingsData) => {
 			const aligned = this.engine.alignLines(lines, options.delimiter, options.justify, {
 				trimWhitespace: settings.trimWhitespace,
 				addSpacesAroundDelimiter: settings.addSpacesAroundDelimiter,
 				useFullwidthSpaces: settings.useFullwidthSpaces,
+				ignoreMarkdownSyntax,
 			});
 			const fromPos = editorService.offsetToPos(startOffset);
 			const toPos = editorService.offsetToPos(currentEndOffset);

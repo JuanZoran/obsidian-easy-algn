@@ -1,12 +1,18 @@
 import type { JustificationStrategy } from './JustificationStrategy';
+import type { DisplayWidthOptions } from '../../utils/textMetrics';
 import { createPadding, calculateDisplayWidth } from '../../utils/textMetrics';
 
 /**
  * Strategy for center-justifying cell content
  */
 export class CenterJustifyStrategy implements JustificationStrategy {
-	justify(value: string, targetWidth: number, useFullwidthSpace: boolean): string {
-		const valueWidth = calculateDisplayWidth(value);
+	justify(
+		value: string,
+		targetWidth: number,
+		useFullwidthSpace: boolean,
+		widthOptions?: DisplayWidthOptions,
+	): string {
+		const valueWidth = calculateDisplayWidth(value, widthOptions);
 		if (targetWidth <= valueWidth) {
 			return value;
 		}

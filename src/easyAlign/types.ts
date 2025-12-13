@@ -17,6 +17,11 @@ export interface AlignmentOptions {
 	trimWhitespace?: boolean;
 	addSpacesAroundDelimiter?: boolean;
 	useFullwidthSpaces?: boolean;
+	/**
+	 * When true, ignore Markdown/Obsidian syntax markers that are hidden in Live Preview
+	 * when measuring column widths (e.g. `[[...]]`, `**...**`).
+	 */
+	ignoreMarkdownSyntax?: boolean;
 }
 
 // AlignmentEngine is now exported from core/alignment/AlignmentEngine

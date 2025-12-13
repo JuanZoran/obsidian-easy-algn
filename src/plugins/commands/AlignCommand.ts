@@ -27,6 +27,7 @@ export class AlignCommand implements ICommandHandler {
 		}
 
 		const lines = selection.split('\n');
+		const ignoreMarkdownSyntax = editorService.isLivePreview();
 		const settings = this.settingsService.getSettings();
 		const aligned = this.engine.alignLines(
 			lines,
@@ -36,6 +37,7 @@ export class AlignCommand implements ICommandHandler {
 				trimWhitespace: settings.trimWhitespace,
 				addSpacesAroundDelimiter: settings.addSpacesAroundDelimiter,
 				useFullwidthSpaces: settings.useFullwidthSpaces,
+				ignoreMarkdownSyntax,
 			},
 		);
 

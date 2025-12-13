@@ -318,4 +318,36 @@ describe('AlignmentEngineImpl', () => {
 			expect(leftWidths.every((width) => width === leftWidths[0])).toBe(true);
 		});
 	});
+
+	describe('ignoreMarkdownSyntax option (Live Preview)', () => {
+		it('ignores emphasis markers when measuring widths', () => {
+			const lines = ['**foo**:1', 'bar:22'];
+
+			const alignedDefault = engine.alignLines(lines, ':', 'left');
+			expect(alignedDefault).toEqual(['**foo** : 1', 'bar     : 22']);
+
+			const alignedLivePreview = engine.alignLines(lines, ':', 'left', {
+				ignoreMarkdownSyntax: true,
+			});
+			expect(alignedLivePreview).toEqual(['**foo** : 1', 'bar : 22']);
+		});
+
+		it('uses Obsidian wiki link alias text for width', () => {
+			const lines = ['[[page|a]]:1', 'bbb:22'];
+			const aligned = engine.alignLines(lines, ':', 'left', {
+				ignoreMarkdownSyntax: true,
+			});
+
+			expect(aligned).toEqual(['[[page|a]]   : 1', 'bbb : 22']);
+		});
+
+		it('does not strip syntax inside inline code spans', () => {
+			const lines = ['`[[foo]]`:1', 'bar:22'];
+			const aligned = engine.alignLines(lines, ':', 'left', {
+				ignoreMarkdownSyntax: true,
+			});
+
+			expect(aligned).toEqual(['`[[foo]]` : 1', 'bar     : 22']);
+		});
+	});
 });

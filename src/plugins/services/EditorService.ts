@@ -1,4 +1,6 @@
+import { editorLivePreviewField } from 'obsidian';
 import type { Editor, EditorPosition } from 'obsidian';
+import type { EditorView } from '@codemirror/view';
 
 /**
  * Service for abstracting editor operations
@@ -38,6 +40,11 @@ export interface IEditorService {
 	 * Convert offset to position
 	 */
 	offsetToPos(offset: number): EditorPosition;
+
+	/**
+	 * Whether the editor is currently in Live Preview mode
+	 */
+	isLivePreview(): boolean;
 }
 
 /**
@@ -72,5 +79,21 @@ export class EditorService implements IEditorService {
 
 	offsetToPos(offset: number): EditorPosition {
 		return this.editor.offsetToPos(offset);
+	}
+
+	isLivePreview(): boolean {
+		const anyEditor = this.editor as any;
+		const editorView = (anyEditor?.cm ?? anyEditor?.editorView ?? anyEditor?.cm6) as
+			| EditorView
+			| undefined;
+		if (!editorView || !(editorView as any).state) {
+			return false;
+		}
+
+		try {
+			return editorView.state.field(editorLivePreviewField) === true;
+		} catch {
+			return false;
+		}
 	}
 }

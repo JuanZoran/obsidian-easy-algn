@@ -35,7 +35,7 @@ export class MeasureStage implements ProcessingStage<Row[], Row[]> {
 				}
 
 				if (shouldAlign) {
-					const cellWidth = calculateDisplayWidth(cell.value);
+					const cellWidth = calculateDisplayWidth(cell.value, context.options);
 					const currentMax = columnWidths[colIndex] ?? 0;
 					columnWidths[colIndex] = Math.max(currentMax, cellWidth);
 				}

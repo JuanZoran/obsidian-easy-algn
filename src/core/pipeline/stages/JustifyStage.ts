@@ -45,7 +45,12 @@ export class JustifyStage implements ProcessingStage<Row[], Row[]> {
 					colIndex,
 				);
 
-				const justifiedValue = strategy.justify(cell.value, targetWidth, useFullwidthSpaces);
+				const justifiedValue = strategy.justify(
+					cell.value,
+					targetWidth,
+					useFullwidthSpaces,
+					context.options,
+				);
 				return cell.withValue(justifiedValue);
 			});
 
